@@ -82,7 +82,8 @@ def visualize_point_cloud(points):
 
 
 if __name__ == "__main__":
-    terrain, obstacle_mask = generate_terrain(xpix=256, ypix=256, scale=5, multi_level=True)
+    terrain, obstacle_mask = generate_terrain(xpix=256, ypix=256, scale=5, multi_level=False, flat_ground=False,
+                                             above_ground_obstacles=True, below_ground_obstacles=True)
 
     synthetic_points = generate_synthetic_point_cloud(np.array(terrain), num_points=100000)
 
@@ -91,8 +92,18 @@ if __name__ == "__main__":
 
     visualize_point_cloud(synthetic_points)
 
-    from point_cloud_costmap import project_point_cloud_optimized, generate_costmap, plot_costmap
+    from point_cloud_costmap import generate_costmap, plot_costmap, nvblox_costmap, project_point_cloud_optimized
+
+    esdf = project_point_cloud_optimized(synthetic_points, resolution=0.1)[0]
+    plt.imshow(esdf)
+    plt.show()
 
     costmap = generate_costmap(synthetic_points, resolution=0.1, lethal_magnitude=0.3)
+    # costmap = nvblox_costmap(synthetic_points, resolution=0.1, lethal_height=0.05)
+
+    print(costmap.shape)
+
+    plt.imshow(costmap)
+    plt.show()
 
     plot_costmap(synthetic_points, costmap, resolution=0.1)

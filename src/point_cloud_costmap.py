@@ -63,6 +63,19 @@ def generate_costmap(points, resolution=0.01, unknown_cost=255, lethal_magnitude
     # lpg = gaussian_laplace(magnitude, sigma=2)
     return magnitude
 
+def nvblox_costmap(points, resolution=0.01, unknown_cost=255, lethal_height=0.1, lethal_cost=254):
+    projected, origin = project_point_cloud_optimized(points, resolution=resolution)
+
+    med_height = np.nanmedian(projected)
+    height_diff = projected - med_height
+    height_diff[np.isnan(height_diff)] = 0.0
+    height_diff[height_diff < 0] = 0.0
+
+    costmap = np.zeros_like(height_diff)
+    costmap[height_diff >= lethal_height] = lethal_cost
+
+    return costmap
+
 def plot_costmap(points, costmap, resolution=0.5):
     point_cloud = pv.PolyData(points)
     # point_cloud = point_cloud.reconstruct_surface()
@@ -96,10 +109,14 @@ if __name__ == "__main__":
 
     end = time.time()
     print(f"Time taken: {end - start} seconds")
+    
+
+    # costmap = np.zeros_like(costmap)
+    plot_costmap(points, np.zeros_like(costmap), resolution=resolution)
+
     plt.imshow(costmap)
     plt.show()
 
-    # costmap = np.zeros_like(costmap)
     plot_costmap(points, costmap, resolution=resolution)
 
 
