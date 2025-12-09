@@ -22,12 +22,16 @@ def compare_algorithms(terrain_kwargs, n=50):
     f1_grad_flow = 0
     f1_nvblox = 0
     for i in range(n):
+        # generate a random synthetic terrain using the provided kwargs
         terrain, obstacle_mask = generate_terrain(**terrain_kwargs)
         synthetic_points = generate_synthetic_point_cloud(np.array(terrain), num_points=100000)
 
+        # generate costmaps using both algorithms
         costmap_grad_flow = generate_costmap(synthetic_points, resolution=0.1, lethal_magnitude=0.2)
         costmap_nvblox = nvblox_costmap(synthetic_points, resolution=0.1, lethal_height=0.05)
 
+        # resize obstacle mask to match costmap dimensions
+        # obstacle map is generated at terrain resolution, costmaps may differ in size due to projection
         obstacle_mask = cv2.resize(obstacle_mask.astype(np.uint8), costmap_nvblox.shape[::-1], interpolation=cv2.INTER_NEAREST)
 
         # Evaluate F1 score for gradient flow costmap
@@ -37,15 +41,18 @@ def compare_algorithms(terrain_kwargs, n=50):
     return f1_grad_flow / n, f1_nvblox / n
 
 if __name__ == "__main__":
+    # run comparisons across different terrain types and print results
+    # builds a dictionary of results for easy visualization later
+    # iterates through a variety of terrain generation settings to compare algorithm performance
     results = {}
     terrain_kwargs = {
-        'xpix': 256,
-        'ypix': 256,
-        'scale': 5,
-        'multi_level': False,
-        'flat_ground': True,
-        'above_ground_obstacles': True,
-        'below_ground_obstacles': False
+        'xpix': 256, # number of pixels in x direction
+        'ypix': 256, # number of pixels in y direction
+        'scale': 5, # scale of terrain features
+        'multi_level': False, # whether to generate multi-level terrain
+        'flat_ground': True, # whether to keep ground flat
+        'above_ground_obstacles': True, # whether to include above-ground obstacles
+        'below_ground_obstacles': False # whether to include below-ground obstacles
     }
     ## FLAT TERRAIN, ABOVE-GROUND OBSTACLES
     f1_grad_flow, f1_nvblox = compare_algorithms(terrain_kwargs, n=10)

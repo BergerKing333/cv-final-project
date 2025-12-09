@@ -41,14 +41,14 @@ def generate_terrain(xpix=256, ypix=256, scale=5,
         for i in range(xpix):
             for j in range(ypix):
                 n = split_noise([i / (xpix * scale), j / (ypix * scale)])
-
+                # calculate sigmoid value and add plateau height
                 sig_val = sigmoid(n, steepness)
                 terrain[i][j] += (plateau_high - plateau_low) * sig_val + plateau_low
 
+                # mark obstacle mask where plateau transitions occur
                 is_transition = 0.2 < sig_val < 0.8
                 if is_transition:
                     obstacle_mask[i][j] = 1
-                
 
     # generate obstacles
     OBSTACLE_SCALE = 0.1
@@ -95,28 +95,28 @@ def visualize_point_cloud(points):
 
 
 if __name__ == "__main__":
+    # generate a random terrain map
     terrain, obstacle_mask = generate_terrain(xpix=256, ypix=256, scale=5, multi_level=False, flat_ground=False,
                                              above_ground_obstacles=True, below_ground_obstacles=True)
-
-    synthetic_points = generate_synthetic_point_cloud(np.array(terrain), num_points=100000)
-
     plt.imshow(terrain)
     plt.show()
 
+    # convert that terrain map into a pointcloud
+    synthetic_points = generate_synthetic_point_cloud(np.array(terrain), num_points=100000)
     visualize_point_cloud(synthetic_points)
 
     from point_cloud_costmap import generate_costmap, plot_costmap, nvblox_costmap, project_point_cloud_optimized
 
+    # esdf projection
     esdf = project_point_cloud_optimized(synthetic_points, resolution=0.1)[0]
     plt.imshow(esdf)
     plt.show()
 
+    # generate costmap from pointcloud
     costmap = generate_costmap(synthetic_points, resolution=0.1, lethal_magnitude=0.3)
     # costmap = nvblox_costmap(synthetic_points, resolution=0.1, lethal_height=0.05)
-
-    print(costmap.shape)
-
     plt.imshow(costmap)
     plt.show()
 
+    # visualize costmap on point cloud
     plot_costmap(synthetic_points, costmap, resolution=0.1)

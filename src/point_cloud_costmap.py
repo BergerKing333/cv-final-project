@@ -2,10 +2,6 @@ import numpy as np
 import pyvista as pv
 import matplotlib.pyplot as plt
 import time
-from scipy.ndimage import gaussian_filter, gaussian_laplace
-from skimage.filters import threshold_otsu
-from skimage.feature import blob_log
-
 
 # this function projects a 3d pointcloud onto a 2d grid by averaging heights within a cell.
 # optimized for speed using numpy's advanced indexing and accumulation functions.
@@ -22,10 +18,12 @@ def project_point_cloud_optimized(points, resolution=0.01):
     
     # Initialize projected grid
     projected = np.full((grid_x_size, grid_y_size), fill_value=np.nan, dtype=np.float32)
-    projected_x_indices = ((points[:, 0] - world_min_x) / resolution).astype(np.int32)
-    projected_y_indices = ((points[:, 1] - world_min_y) / resolution).astype(np.int32)
     sums = np.zeros_like(projected)
     counts = np.zeros_like(projected, dtype=int)
+
+    # Calculate grid indices for each point
+    projected_x_indices = ((points[:, 0] - world_min_x) / resolution).astype(np.int32)
+    projected_y_indices = ((points[:, 1] - world_min_y) / resolution).astype(np.int32)
 
     # Accumulate sums and counts using advanced indexing
     np.add.at(sums, (projected_x_indices, projected_y_indices), points[:, 2])
@@ -106,26 +104,32 @@ if __name__ == "__main__":
     resolution = 0.1
 
     start = time.time()
+    # load recorded point cloud data
     data = np.load('point_cloud_archive/point_cloud_data.npz', allow_pickle=True)
-
     points = np.array(data['points'])
 
+    # get and visualize esdf projection
     projected, origin = project_point_cloud_optimized(points, resolution=resolution)
     plt.imshow(projected)
     plt.show()
 
-    # projected = project_point_cloud_optimized(points, resolution=resolution)
+    # build a costmap using gradient magnitude method
     costmap = generate_costmap(points, resolution=resolution, lethal_magnitude=0.4)
+
+    # build a costmap using nvblox method
+    # costmap = nvblox_costmap(points, resolution=resolution, lethal_height=0.1)
 
     end = time.time()
     print(f"Time taken: {end - start} seconds")
 
-    # costmap = np.zeros_like(costmap)
+    # visualize raw pointcloud
     plot_costmap(points, np.zeros_like(costmap), resolution=resolution)
 
+    # visualize costmap
     plt.imshow(costmap)
     plt.show()
 
+    # visualize costmap on point cloud
     plot_costmap(points, costmap, resolution=resolution)
 
 
