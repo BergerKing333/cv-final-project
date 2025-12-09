@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
+# name of function is self-explantory. computes f1 score between predicted costmap and ground truth obstacle mask
 def calculate_f1_score(predicted_costmap, ground_truth_mask, lethal_threshold=254):
     predicted_obstacles = (predicted_costmap >= lethal_threshold).astype(int)
     tp = np.sum((predicted_obstacles == 1) & (ground_truth_mask == 1))
@@ -16,6 +17,7 @@ def calculate_f1_score(predicted_costmap, ground_truth_mask, lethal_threshold=25
     f1_score = 2 * (precision * recall) / (precision + recall + 1e-6)
     return f1_score
 
+# wrapper function to compare two costmap generation algorithms over multiple terrain instances
 def compare_algorithms(terrain_kwargs, n=50):
     f1_grad_flow = 0
     f1_nvblox = 0

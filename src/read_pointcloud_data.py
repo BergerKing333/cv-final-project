@@ -2,16 +2,17 @@ import numpy as np
 import pyvista as pv
 import matplotlib.pyplot as plt
 
+
+# load point cloud data from npz file
 data = np.load('point_cloud_data.npz', allow_pickle=True)
-
-
 # point_cloud = pv.PolyData(np.array([[0, 0, 0], [2, 2, 2]])) # data['points'][0:5])
-
 points = np.array(data['points'])
 # points = points[0:-1:2]
 
+# Build pyvista point cloud
 point_cloud = pv.PolyData(points)
 
+# reconstruct a mesh from teh pointcloud (this was just experimental/ for testing)
 mesh = point_cloud.reconstruct_surface()
 
 plotter = pv.Plotter()

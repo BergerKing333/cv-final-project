@@ -3,23 +3,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pyvista as pv
 
-
-# BUILD 2D IMAGE OF TERRAIN (PERLIN NOISE OR SOMETHING ELSE)
+# sigmoid function.
 def sigmoid(x, steepness):
     return 1 / (1 + np.exp(-steepness * x))
 
+# full terrain generation function.
+# handles flat vs noisy terrain, above and below ground obstacles, and multi-level terrain generation.
+# this is done with layered perlin noise functions and a few other math tricks.
 def generate_terrain(xpix=256, ypix=256, scale=5,
                      flat_ground=False, above_ground_obstacles=True, below_ground_obstacles=True,
                      multi_level=False):
+    # Build a base terrain.
     terrain = []
-    obstacle_mask = np.zeros((xpix, ypix))
-
+    obstacle_mask = np.zeros((xpix, ypix)) # used for evaluation later
     noise = PerlinNoise(octaves=1, seed=np.random.randint(0, 100))
-
     if flat_ground:
+        # flat terrain
         terrain = np.zeros((xpix, ypix))
     else:
         for i in range(xpix):
+            # if not flat, build perlin noise terrain- gradual slopes
             row = []
             for j in range(ypix):
                 n = noise([i / (xpix * scale), j / (ypix * scale)])
@@ -27,11 +30,14 @@ def generate_terrain(xpix=256, ypix=256, scale=5,
             terrain.append(row)
         terrain = np.array(terrain)
 
+    # if multi level, add a steep plateau using a sigmoid function
     if multi_level:
+        # determien location, steepness, and height of plateau randomly
         split_noise = PerlinNoise(octaves=2, seed=np.random.randint(0, 100))
         plateau_low = np.random.uniform(-0.2, 0.2)
         plateau_high = plateau_low + np.random.uniform(0.3, 0.6)
         steepness = np.random.uniform(100, 200)
+        # add plateau to terrain
         for i in range(xpix):
             for j in range(ypix):
                 n = split_noise([i / (xpix * scale), j / (ypix * scale)])
@@ -47,6 +53,7 @@ def generate_terrain(xpix=256, ypix=256, scale=5,
     # generate obstacles
     OBSTACLE_SCALE = 0.1
     noise2 = PerlinNoise(octaves=8, seed=np.random.randint(0, 100))
+    # uses thresholded perlin noise to add obstacles.
     for i in range(xpix):
         for j in range(ypix):
             n = noise2([i / xpix, j / ypix])
@@ -61,20 +68,26 @@ def generate_terrain(xpix=256, ypix=256, scale=5,
 
 # SAMPLE POINT CLOUD FROM IMAGE
 def generate_synthetic_point_cloud(image, num_points=250, height_scale=5.0, world_size=10.0):
+    # this function randomly samples points from the terrain image to create a synthetic point cloud.
+    # x and y are set based on pixel location, z is based on image intensity at that pixel.
     points = []
     xpix, ypix = image.shape
     for _ in range(num_points):
+        # for every point, randomly sample a pixel
         x = np.random.uniform(0, xpix)
         y = np.random.uniform(0, ypix)
         ix = int(x)
         iy = int(y)
+        # calculate z based on pixel intensity with some noise to simulate sensor noise
         z = image[ix, iy] * height_scale + np.random.normal(0, 0.01)
+        # add this point to the pointcloud
         points.append([x * world_size / xpix, y * world_size / ypix, z])
     return np.array(points)
 
 
 # VISUALIZE POINT CLOUD
 def visualize_point_cloud(points):
+    # visualize the point cloud using pyvista
     cloud = pv.PolyData(points)
     plotter = pv.Plotter()
     plotter.add_mesh(cloud, render_points_as_spheres=True, point_size=10)
